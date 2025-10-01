@@ -133,11 +133,38 @@ function Afficher_tous_les_livres() {
 }
 
 function Trier_les_livres_par_titre() {
-  console.log("trie les livres par titre");
+  console.log("\n=== TRIER PAR TITRE ===");
+  console.log("1. Ordre croissant (A → Z)");
+  console.log("2. Ordre décroissant (Z → A)");
+
+  const choix = prompt("Votre choix : ");
+
+  if (choix === "1") {
+    livres.sort(function (a, b) {
+      if (a.titre < b.titre) return -1;
+      if (a.titre > b.titre) return 1;
+      return 0;
+    });
+    console.log("✓ Livres triés par titre (A → Z)");
+  } else if (choix === "2") {
+    livres.sort(function (a, b) {
+      if (a.titre > b.titre) return -1;
+      if (a.titre < b.titre) return 1;
+      return 0;
+    });
+    console.log("Livres triés par titre (Z → A)");
+  }
+
+  Afficher_tous_les_livres();
 }
 
 function Trier_les_livres_par_année() {
-  console.log("trie les livres par année");
+  livres.sort(function (a, b) {
+    return a.annee - b.annee;
+  });
+
+  console.log("Livres triés par année");
+  afficherTousLesLivres();
 }
 
 function Afficher_uniquement_les_livres_disponibles() {
@@ -266,39 +293,113 @@ function is_ISBN_exist(isbn) {
 }
 
 function is_abonne_exist(idabonne) {
-  for (let key in Tableau_des_abonnés) {
-    if (Tableau_des_abonnés[key].id === idabonne) {
+  for (let i = 0; i < Tableau_des_abonnés.length; i++) {
+    if (Tableau_des_abonnés[i].id === idabonne) {
       return true;
     }
   }
   return false;
 }
 
+function trouver_livre_par_ISBN(isbn) {
+  for (let i = 0; i < Tableau_des_Livres.length; i++) {
+    if (Tableau_des_Livres[i].isbn === isbn) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function is_livre_disponible(isbn) {
+  let index = trouver_livre_par_ISBN(isbn);
+  if (index === -1) return false;
+  return Tableau_des_Livres[index].disponible;
+}
+
 function Enregistrer_un_emprunt() {
-  let isbn = " ";
-  let abonneId = 0;
-  let dateEmprunt = Date;
-  do {
-    isbn = prompt("entre le ISBN. ");
-  } while (!is_ISBN_exist(isbn));
+  let abonneId = prompt("ID de l'abonné : ");
+  let isbn = prompt("ISBN du livre : ");
+
   do {
     isbn = prompt("entre le id. ");
   } while (!is_abonne_exist(abonneId));
 
+  do {
+    isbn = prompt("entre le ISBN. ");
+  } while (!is_ISBN_exist(isbn));
+
+  if (!is_livre_disponible(isbn)) {
+    console.log("Ce livre est déjà emprunté !");
+    return;
+  }
+
+  const dateAujourdhui = new Date().toISOString().split("T")[0];
+
   Tableau_des_emprunts.push({
-    abonneId,
-    isbn,
-    dateEmprunt,
+    abonneId: abonneId,
+    isbn: isbn,
+    dateEmprunt: dateAujourdhui,
   });
-  Tableau_des_Livres.disponible = false;
+
+  let livreIndex = trouver_livre_par_ISBN(isbn);
+  Tableau_des_Livres[livreIndex].disponible = false;
 }
 
 function Enregistrer_un_retour() {
-  console.log("Enregistrer un retour");
+  let isbn = prompt("ISBN du livre retourné : ");
+
+  do {
+    isbn = prompt("entre le ISBN. ");
+  } while (!is_ISBN_exist(isbn));
+
+  let empruntIndex = -1;
+  for (let i = 0; i < Tableau_des_emprunts.length; i++) {
+    if (Tableau_des_emprunts[i].isbn === isbn) {
+      empruntIndex = i;
+      break;
+    }
+  }
+
+  if (empruntIndex === -1) {
+    console.log("Aucun emprunt trouvé pour ce livre !");
+    return;
+  }
+
+  Tableau_des_emprunts.splice(empruntIndex, 1);
+
+  let livreIndex = trouver_livre_par_ISBN(isbn);
+  Tableau_des_Livres[livreIndex].disponible = true;
+
+  console.log("Retour enregistré avec succès !");
 }
 
 function Afficher_les_livres_empruntés_par_un_abonné_donné() {
-  console.log("  3. Afficher les livres empruntés par un abonné donné.  ");
+  let abonneId = prompt("ID de l'abonné : ");
+
+  if (!is_abonne_exist(abonneId)) {
+    console.log("Abonné introuvable !");
+    return;
+  }
+
+  let counter = 0;
+
+  for (let i = 0; i < Tableau_des_emprunts.length; i++) {
+    if (Tableau_des_emprunts[i].abonneId === abonneId) {
+      counter++;
+      let isbn = Tableau_des_emprunts[i].isbn;
+
+      let livreIndex = trouver_livre_par_ISBN(isbn);
+
+      if (livreIndex !== -1) {
+        const livre = Tableau_des_Livres[livreIndex];
+        console.log(`\n${counter}. "${livre.titre}"`);
+        console.log(`   Auteur: ${livre.auteur}`);
+        console.log(
+          `   Date d'emprunt: ${Tableau_des_emprunts[i].dateEmprunt}`
+        );
+      }
+    }
+  }
 }
 
 function task_Action_handler_emprunts(action) {
